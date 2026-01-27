@@ -1,0 +1,22 @@
+# Flutter/Dart/Pub related
+**/doc/api/
+**/ios/Flutter/.last_build_id
+.dart_tool/
+.flutter-plugins-dependencies
+.pub-cache/
+.pub/
+build/
+coverage/
+
+# Android Studio / VS Code
+.idea/
+.vscode/
+
+# Misc
+*.log
+*.class
+*.swp
+.DS_Store
+
+# Env
+.env

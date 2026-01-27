@@ -1,0 +1,51 @@
+name: weather_app
+description: A new Flutter project.
+# The following line prevents the package from being accidentally published to
+# pub.dev using `flutter pub publish`. This is preferred for private packages.
+publish_to: 'none' # Remove this line if you wish to publish to pub.dev
+
+version: 1.0.0+1
+
+environment:
+  sdk: '>=3.0.0 <4.0.0'  # hoặc phiên bản mới nhất tương thích với Flutter của bạn
+
+dependencies:
+  flutter:
+    sdk: flutter
+  google_fonts: ^6.2.1
+  # Gọi API (có 2 lựa chọn phổ biến)
+  http: ^1.2.2                # đơn giản, nhẹ (phiên bản này vẫn ổn, 2026 dùng ^1.2.x hoặc mới hơn nếu có)
+  # dio: ^5.7.0               # uncomment nếu bạn muốn dùng dio thay http
+
+  # Quản lý trạng thái (chọn 1 thôi nhé)
+  provider: ^6.1.2            # đơn giản, dễ học nhất cho beginner
+  # riverpod: ^2.5.1          # hiện đại, recommend nhiều nhất 2025-2026 (nếu dùng thì uncomment)
+  # flutter_bloc: ^8.1.6 
+  flutter_dotenv: ^6.0.0     # nếu thích clean architecture
+
+  # Lấy vị trí người dùng (rất quan trọng cho weather app)
+  geolocator: ^13.0.1
+  permission_handler: ^11.3.1   # cập nhật 2026 có thể dùng ^11.4.x nếu mới hơn
+
+  # Format ngày giờ, đơn vị (Celsius/Fahrenheit)
+  intl: ^0.19.0
+
+  # Hiển thị icon thời tiết đẹp (tùy chọn nhưng rất xịn)
+  flutter_svg: ^2.0.10+1      # dùng icon SVG từ OpenWeather
+  # iconsax: ^0.0.8           # uncomment nếu muốn dùng bộ icon hiện đại
+
+  # Loading đẹp, animation
+  lottie: ^3.1.2              # animation json (mưa, nắng, mây...)
+  shimmer: ^3.0.0             # hiệu ứng loading skeleton
+
+  # Lưu dữ liệu offline (cache thời tiết)
+  shared_preferences: ^2.3.0  # lưu city yêu thích, đơn vị nhiệt độ
+  # hive: ^2.2.3              # uncomment nếu muốn lưu phức tạp hơn
+
+# Phần assets (nếu dùng lottie hoặc svg icon local, nhớ khai báo)
+flutter:
+  uses-material-design: true
+  assets:
+    - assets/icons/           # nếu bạn tải icon SVG về
+    - assets/animations/
+    - .env      # nếu dùng file .json của lottie
