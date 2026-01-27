@@ -1,9 +1,10 @@
 import 'package:flutter/material.dart';
 import 'package:provider/provider.dart';
 import 'package:google_fonts/google_fonts.dart';
+
 import '../providers/weather_provider.dart';
 import '../models/weather.dart';
-import '../models/forecast.dart'; // Giả sử bạn đã tạo file này
+import '../models/forecast.dart';
 
 class HomeScreen extends StatefulWidget {
   const HomeScreen({super.key});
@@ -13,7 +14,7 @@ class HomeScreen extends StatefulWidget {
 }
 
 class _HomeScreenState extends State<HomeScreen> {
-  final _controller = TextEditingController();
+  final TextEditingController _controller = TextEditingController();
 
   @override
   void dispose() {
@@ -21,6 +22,45 @@ class _HomeScreenState extends State<HomeScreen> {
     super.dispose();
   }
 
+  // ================= SEARCH =================
+  void _searchCity(WeatherProvider provider, String value) {
+    final city = value.trim();
+
+    if (provider.isLoading) return;
+
+    if (city.isEmpty) {
+      _showMessage('Vui lòng nhập tên thành phố');
+      return;
+    }
+
+    if (city.length < 2) {
+      _showMessage('Tên thành phố quá ngắn');
+      return;
+    }
+
+    final validCity = RegExp(r"^[a-zA-ZÀ-ỹ\s\-]+$");
+    if (!validCity.hasMatch(city)) {
+      _showMessage('Tên thành phố không hợp lệ');
+      return;
+    }
+
+    provider.getWeather(city);
+    _controller.clear();
+    FocusScope.of(context).unfocus();
+  }
+
+  void _showMessage(String message) {
+    ScaffoldMessenger.of(context)
+      ..clearSnackBars()
+      ..showSnackBar(
+        SnackBar(
+          content: Text(message, style: GoogleFonts.openSans()),
+          behavior: SnackBarBehavior.floating,
+        ),
+      );
+  }
+
+  // ================= BUILD =================
   @override
   Widget build(BuildContext context) {
     final provider = context.watch<WeatherProvider>();
@@ -40,66 +80,19 @@ class _HomeScreenState extends State<HomeScreen> {
         child: SafeArea(
           child: Column(
             children: [
-              Padding(
-                padding: const EdgeInsets.fromLTRB(16, 16, 16, 8),
-                child: Row(
-                  children: [
-                    const Icon(Icons.location_on,
-                        color: Colors.white, size: 28),
-                    const SizedBox(width: 8),
-                    Text(
-                      'Thời tiết',
-                      style: GoogleFonts.poppins(
-                        fontSize: 28,
-                        fontWeight: FontWeight.w600,
-                        color: Colors.white,
-                      ),
-                    ),
-                  ],
-                ),
-              ),
-              Padding(
-                padding: const EdgeInsets.symmetric(horizontal: 16),
-                child: TextField(
-                  controller: _controller,
-                  style: const TextStyle(color: Colors.white),
-                  decoration: InputDecoration(
-                    hintText: 'Tìm kiếm thành phố... (ví dụ: Cầu Giấy, Hà Nội)',
-                    hintStyle: const TextStyle(color: Colors.white70),
-                    prefixIcon: const Icon(Icons.search, color: Colors.white70),
-                    filled: true,
-                    fillColor: Colors.white.withOpacity(0.2),
-                    border: OutlineInputBorder(
-                      borderRadius: BorderRadius.circular(30),
-                      borderSide: BorderSide.none,
-                    ),
-                    contentPadding: const EdgeInsets.symmetric(vertical: 14),
-                  ),
-                  onSubmitted: (value) => _searchCity(provider, value),
-                ),
-              ),
-              const SizedBox(height: 16),
+              _buildHeader(),
+              _buildSearch(provider),
+              const SizedBox(height: 12),
               Expanded(
                 child: provider.isLoading
                     ? const Center(
-                        child: CircularProgressIndicator(color: Colors.white))
+                        child: CircularProgressIndicator(color: Colors.white),
+                      )
                     : provider.error != null
-                        ? Center(
-                            child: Padding(
-                              padding: const EdgeInsets.all(24),
-                              child: Text(
-                                provider.error!,
-                                style: GoogleFonts.poppins(
-                                  color: Colors.white,
-                                  fontSize: 18,
-                                ),
-                                textAlign: TextAlign.center,
-                              ),
-                            ),
-                          )
+                        ? _buildError(provider.error!)
                         : provider.weather == null
-                            ? _buildInitialUI()
-                            : _buildWeatherUI(provider.weather!, provider),
+                            ? _buildInitial()
+                            : _buildWeather(provider.weather!, provider),
               ),
             ],
           ),
@@ -108,134 +101,191 @@ class _HomeScreenState extends State<HomeScreen> {
     );
   }
 
-  void _searchCity(WeatherProvider provider, String value) {
-    final city = value.trim();
-    if (city.isNotEmpty) {
-      provider.getWeather(city);
-      _controller.clear();
-    }
-  }
-
-  Widget _buildInitialUI() {
-    return Center(
-      child: Column(
-        mainAxisAlignment: MainAxisAlignment.center,
+  // ================= UI PARTS =================
+  Widget _buildHeader() {
+    return Padding(
+      padding: const EdgeInsets.fromLTRB(16, 16, 16, 8),
+      child: Row(
         children: [
-          Icon(Icons.cloud_outlined,
-              size: 120, color: Colors.white.withOpacity(0.7)),
-          const SizedBox(height: 24),
+          const Icon(Icons.location_on, color: Colors.white),
+          const SizedBox(width: 8),
           Text(
-            'Nhập tên thành phố để xem thời tiết',
-            style: GoogleFonts.poppins(fontSize: 20, color: Colors.white),
-            textAlign: TextAlign.center,
+            'Forecast Weather',
+            style: GoogleFonts.openSans(
+              fontSize: 24,
+              fontWeight: FontWeight.w600,
+              color: Colors.white,
+            ),
           ),
         ],
       ),
     );
   }
 
-  Widget _buildWeatherUI(Weather w, WeatherProvider provider) {
-    final size = MediaQuery.of(context).size;
-    final isSmall = size.width < 360;
+  Widget _buildSearch(WeatherProvider provider) {
+    return Padding(
+      padding: const EdgeInsets.symmetric(horizontal: 18),
+      child: TextField(
+        controller: _controller,
+        style: GoogleFonts.openSans(color: Colors.white),
+        decoration: InputDecoration(
+          hintText: 'Tìm kiếm thành phố',
+          hintStyle: GoogleFonts.openSans(color: Colors.white70),
+          prefixIcon: const Icon(Icons.search, color: Colors.white70),
+          filled: true,
+          fillColor: Colors.white.withOpacity(0.2),
+          border: OutlineInputBorder(
+            borderRadius: BorderRadius.circular(30),
+            borderSide: BorderSide.none,
+          ),
+        ),
+        onSubmitted: (v) => _searchCity(provider, v),
+      ),
+    );
+  }
+
+  Widget _buildInitial() {
+    return Column(
+      mainAxisAlignment: MainAxisAlignment.center,
+      children: [
+        Icon(Icons.cloud_outlined,
+            size: 120, color: Colors.white.withOpacity(0.7)),
+        const SizedBox(height: 16),
+        Text(
+          'Nhập tên thành phố để xem thời tiết',
+          style: GoogleFonts.openSans(
+            fontSize: 18,
+            color: Colors.white,
+          ),
+        ),
+      ],
+    );
+  }
+
+  Widget _buildError(String error) {
+    return Center(
+      child: Padding(
+        padding: const EdgeInsets.all(24),
+        child: Text(
+          error,
+          textAlign: TextAlign.center,
+          style: GoogleFonts.openSans(
+            color: Colors.white,
+            fontSize: 16,
+          ),
+        ),
+      ),
+    );
+  }
+
+  // ================= WEATHER =================
+  Widget _buildWeather(Weather w, WeatherProvider provider) {
+    final isSmall = MediaQuery.of(context).size.width < 360;
 
     return SingleChildScrollView(
       padding: EdgeInsets.all(isSmall ? 12 : 16),
       child: Column(
-        crossAxisAlignment: CrossAxisAlignment.center,
         children: [
           Text(
             w.city,
-            style: GoogleFonts.poppins(
-              fontSize: isSmall ? 32 : 42,
+            style: GoogleFonts.openSans(
+              fontSize: isSmall ? 30 : 38,
               fontWeight: FontWeight.w600,
               color: Colors.white,
             ),
           ),
           const SizedBox(height: 8),
+
+          /// NHIỆT ĐỘ
+          Row(
+            mainAxisAlignment: MainAxisAlignment.center,
+            crossAxisAlignment: CrossAxisAlignment.start,
+            children: [
+              Text(
+                w.temp.round().toString(),
+                style: GoogleFonts.openSans(
+                  fontSize: isSmall ? 78 : 96,
+                  fontWeight: FontWeight.w600,
+                  color: Colors.white,
+                  height: 1,
+                ),
+              ),
+              Padding(
+                padding: const EdgeInsets.only(top: 10),
+                child: Text(
+                  '°C',
+                  style: GoogleFonts.openSans(
+                    fontSize: isSmall ? 22 : 26,
+                    color: Colors.white.withOpacity(0.6),
+                  ),
+                ),
+              ),
+            ],
+          ),
+
+          const SizedBox(height: 4),
+
           Text(
-            '${w.temp.round()}°C',
-            style: GoogleFonts.poppins(
-              fontSize: isSmall ? 80 : 100,
-              fontWeight: FontWeight.w300,
-              color: Colors.white,
-              height: 0.9,
+            'Cảm giác ${w.feelsLike.round()}°C',
+            style: GoogleFonts.openSans(
+              fontSize: 14,
+              color: Colors.white.withOpacity(0.6),
             ),
           ),
-          Text(
-            'Cảm giác như ${w.feelsLike.round()}°C',
-            style: GoogleFonts.poppins(
-                fontSize: isSmall ? 18 : 22, color: Colors.white70),
-          ),
+
           const SizedBox(height: 8),
+
           Text(
-            w.description.toUpperCase(),
-            style: GoogleFonts.poppins(
-              fontSize: isSmall ? 16 : 20,
-              color: Colors.white,
-              fontWeight: FontWeight.w500,
+            w.description.isNotEmpty
+                ? '${w.description[0].toUpperCase()}${w.description.substring(1)}'
+                : '',
+            style: GoogleFonts.openSans(
+              fontSize: 18,
+              fontWeight: FontWeight.w700,
+              color: Colors.white.withOpacity(0.85),
             ),
           ),
+
           const SizedBox(height: 24),
 
-          // Info Grid responsive
-          LayoutBuilder(
-            builder: (context, constraints) {
-              final aspect = constraints.maxWidth < 360 ? 1.3 : 1.1;
-
-
-              return GridView.builder(
-                shrinkWrap: true,
-                physics: const NeverScrollableScrollPhysics(),
-                gridDelegate: SliverGridDelegateWithFixedCrossAxisCount(
-                  crossAxisCount: 2,
-                  crossAxisSpacing: 12,
-                  mainAxisSpacing: 12,
-                  childAspectRatio: aspect,
-                ),
-                itemCount: 4,
-                itemBuilder: (context, index) {
-                  final items = [
-                    _InfoItem(
-                        icon: Icons.water_drop,
-                        label: 'Độ ẩm',
-                        value: '${w.humidity}%'),
-                    _InfoItem(
-                        icon: Icons.air,
-                        label: 'Gió',
-                        value: '${w.windSpeed.toStringAsFixed(1)} m/s'),
-                    _InfoItem(
-                        icon: Icons.visibility,
-                        label: 'Tầm nhìn',
-                        value:
-                            '${(w.visibility / 1000).toStringAsFixed(1)} km'),
-                    _InfoItem(
-                        icon: Icons.compress,
-                        label: 'Áp suất',
-                        value: '${w.pressure} hPa'),
-                  ];
-                  return items[index];
-                },
-              );
-            },
+          /// INFO GRID
+          GridView.count(
+            crossAxisCount: 2,
+            shrinkWrap: true,
+            physics: const NeverScrollableScrollPhysics(),
+            crossAxisSpacing: 12,
+            mainAxisSpacing: 12,
+            childAspectRatio: isSmall ? 1.35 : 1.15,
+            children: [
+              _InfoItem(Icons.water_drop, 'Độ ẩm', '${w.humidity}%'),
+              _InfoItem(Icons.air, 'Gió',
+                  '${w.windSpeed.toStringAsFixed(1)} m/s'),
+              _InfoItem(Icons.visibility, 'Tầm nhìn',
+                  '${(w.visibility / 1000).toStringAsFixed(1)} km'),
+              _InfoItem(Icons.compress, 'Áp suất', '${w.pressure} hPa'),
+            ],
           ),
 
-          const SizedBox(height: 32),
+          const SizedBox(height: 28),
 
-          // Dự báo thật
+          /// FORECAST
           Text(
-            'Dự báo',
-            style: GoogleFonts.poppins(
-              fontSize: 24,
+            'Dự báo 7 ngày',
+            style: GoogleFonts.openSans(
+              fontSize: 22,
               fontWeight: FontWeight.w600,
               color: Colors.white,
             ),
           ),
           const SizedBox(height: 12),
+
           SizedBox(
-            height: isSmall ? 170 : 160,
+            height: 160,
             child: provider.forecasts.isEmpty
                 ? const Center(
-                    child: CircularProgressIndicator(color: Colors.white70))
+                    child:
+                        CircularProgressIndicator(color: Colors.white70),
+                  )
                 : ListView.builder(
                     scrollDirection: Axis.horizontal,
                     itemCount: provider.forecasts.length,
@@ -243,9 +293,10 @@ class _HomeScreenState extends State<HomeScreen> {
                       final f = provider.forecasts[index];
                       return _ForecastCard(
                         day: f.date,
-                        temp: '${f.minTemp.round()} ~ ${f.maxTemp.round()}',
-                        icon: _mapIcon(f.icon), // hàm map icon bạn đã có
-                        rain: f.rainChance != null && f.rainChance! > 0
+                        temp:
+                            '${f.minTemp.round()} ~ ${f.maxTemp.round()}',
+                        icon: _mapIcon(f.icon),
+                        rain: f.rainChance != null
                             ? '${f.rainChance!.round()}%'
                             : null,
                       );
@@ -257,54 +308,36 @@ class _HomeScreenState extends State<HomeScreen> {
     );
   }
 
-  IconData _mapIcon(String iconCode) {
-    // Map cơ bản từ OpenWeather icon code
-    switch (iconCode) {
+  IconData _mapIcon(String icon) {
+    switch (icon) {
       case '01d':
       case '01n':
         return Icons.wb_sunny;
-      case '02d':
-      case '02n':
-      case '03d':
-      case '03n':
-      case '04d':
-      case '04n':
-        return Icons.cloud;
       case '09d':
-      case '09n':
       case '10d':
-      case '10n':
         return Icons.grain;
       case '11d':
-      case '11n':
         return Icons.thunderstorm;
       case '13d':
-      case '13n':
         return Icons.ac_unit;
-      case '50d':
-      case '50n':
-        return Icons.filter_drama;
       default:
         return Icons.cloud;
     }
   }
 }
 
+// ================= INFO ITEM =================
 class _InfoItem extends StatelessWidget {
   final IconData icon;
   final String label;
   final String value;
 
-  const _InfoItem({
-    required this.icon,
-    required this.label,
-    required this.value,
-  });
+  const _InfoItem(this.icon, this.label, this.value);
 
   @override
   Widget build(BuildContext context) {
     return Container(
-      padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 10), // ⬅ giảm padding
+      padding: const EdgeInsets.symmetric(vertical: 10),
       decoration: BoxDecoration(
         color: Colors.white.withOpacity(0.15),
         borderRadius: BorderRadius.circular(16),
@@ -312,35 +345,24 @@ class _InfoItem extends StatelessWidget {
       child: Column(
         mainAxisAlignment: MainAxisAlignment.center,
         children: [
-          Icon(icon, color: Colors.white70, size: 28), // ⬅ icon nhỏ hơn
+          Icon(icon, size: 26, color: Colors.white70),
           const SizedBox(height: 4),
-          Text(
-            label,
-            style: const TextStyle(
-              color: Colors.white70,
-              fontSize: 12, // ⬅ nhỏ hơn
-            ),
-            textAlign: TextAlign.center,
-            maxLines: 1,
-            overflow: TextOverflow.ellipsis,
-          ),
+          Text(label,
+              style: GoogleFonts.openSans(
+                  fontSize: 12, color: Colors.white70)),
           const SizedBox(height: 2),
-          Text(
-            value,
-            style: GoogleFonts.poppins(
-              color: Colors.white,
-              fontSize: 15,
-              fontWeight: FontWeight.w500,
-            ),
-            maxLines: 1,
-            overflow: TextOverflow.ellipsis,
-          ),
+          Text(value,
+              style: GoogleFonts.openSans(
+                  fontSize: 15,
+                  fontWeight: FontWeight.w500,
+                  color: Colors.white)),
         ],
       ),
     );
   }
 }
 
+// ================= FORECAST CARD =================
 class _ForecastCard extends StatelessWidget {
   final String day;
   final String temp;
@@ -362,47 +384,26 @@ class _ForecastCard extends StatelessWidget {
       padding: const EdgeInsets.all(12),
       decoration: BoxDecoration(
         color: Colors.white.withOpacity(0.15),
-        borderRadius: BorderRadius.circular(20),
+        borderRadius: BorderRadius.circular(18),
       ),
-      child: SingleChildScrollView( // ✅ FIX OVERFLOW
-        physics: const NeverScrollableScrollPhysics(),
-        child: Column(
-          mainAxisAlignment: MainAxisAlignment.center,
-          children: [
-            Text(
-              day,
-              style: const TextStyle(color: Colors.white70, fontSize: 13),
-              textAlign: TextAlign.center,
-              maxLines: 1,
-              overflow: TextOverflow.ellipsis,
-            ),
-            const SizedBox(height: 6),
-            Icon(icon, color: Colors.white, size: 36),
-            const SizedBox(height: 6),
-            FittedBox(
-              child: Text(
-                temp,
-                style: GoogleFonts.poppins(
-                  color: Colors.white,
-                  fontSize: 15,
-                ),
-              ),
-            ),
-            if (rain != null) ...[
-              const SizedBox(height: 4),
-              Text(
-                'Mưa $rain',
-                style:
-                    const TextStyle(color: Colors.white70, fontSize: 12),
-                textAlign: TextAlign.center,
-                maxLines: 1,
-                overflow: TextOverflow.ellipsis,
-              ),
-            ],
-          ],
-        ),
+      child: Column(
+        mainAxisAlignment: MainAxisAlignment.center,
+        children: [
+          Text(day,
+              style: GoogleFonts.openSans(
+                  fontSize: 12, color: Colors.white70)),
+          const SizedBox(height: 6),
+          Icon(icon, size: 34, color: Colors.white),
+          const SizedBox(height: 6),
+          Text(temp,
+              style: GoogleFonts.openSans(
+                  fontSize: 14, color: Colors.white)),
+          if (rain != null)
+            Text('Mưa $rain',
+                style: GoogleFonts.openSans(
+                    fontSize: 11, color: Colors.white70)),
+        ],
       ),
     );
   }
 }
-
