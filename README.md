@@ -1,16 +1,33 @@
-# weather_app
+BƯỚC 1: Cài Flutter (nếu máy mới)
+flutter doctor
 
-A new Flutter project.
 
-## Getting Started
+Nếu chưa có → cài Flutter + Android Studio / SDK
 
-This project is a starting point for a Flutter application.
+🔹 BƯỚC 2: Tải lại toàn bộ thư viện
 
-A few resources to get you started if this is your first Flutter project:
+Trong thư mục project:
 
-- [Lab: Write your first Flutter app](https://docs.flutter.dev/get-started/codelab)
-- [Cookbook: Useful Flutter samples](https://docs.flutter.dev/cookbook)
+flutter pub get
 
-For help getting started with Flutter development, view the
-[online documentation](https://docs.flutter.dev/), which offers tutorials,
-samples, guidance on mobile development, and a full API reference.
+
+👉 Flutter sẽ:
+
+Tạo lại .dart_tool/
+
+Tải package vào .pub-cache
+
+Đọc pubspec.yaml
+
+🔹 BƯỚC 3: Kiểm tra môi trường
+flutter doctor
+
+🔹 BƯỚC 4: Chạy app
+flutter run
+
+
+HOẶC:
+
+Mở emulator
+
+Bấm ▶ Run trong VS Code / Android Studio
