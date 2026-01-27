@@ -226,7 +226,7 @@ class _HomeScreenState extends State<HomeScreen> {
           const SizedBox(height: 4),
 
           Text(
-            'Cảm giác ${w.feelsLike.round()}°C',
+            'Nhiệt độ cảm nhận ${w.feelsLike.round()}°C',
             style: GoogleFonts.openSans(
               fontSize: 14,
               color: Colors.white.withOpacity(0.6),
