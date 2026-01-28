@@ -238,7 +238,7 @@ class _HomeScreenState extends State<HomeScreen> {
           Text(
             w.description.isNotEmpty
                 ? '${w.description[0].toUpperCase()}${w.description.substring(1)}'
-                : '',
+                : 'Không có mô tả',
             style: GoogleFonts.openSans(
               fontSize: 18,
               fontWeight: FontWeight.w700,
@@ -249,21 +249,25 @@ class _HomeScreenState extends State<HomeScreen> {
           const SizedBox(height: 24),
 
           /// INFO GRID
-          GridView.count(
-            crossAxisCount: 2,
-            shrinkWrap: true,
-            physics: const NeverScrollableScrollPhysics(),
-            crossAxisSpacing: 12,
-            mainAxisSpacing: 12,
-            childAspectRatio: isSmall ? 1.35 : 1.15,
-            children: [
-              _InfoItem(Icons.water_drop, 'Độ ẩm', '${w.humidity}%'),
-              _InfoItem(Icons.air, 'Gió',
-                  '${w.windSpeed.toStringAsFixed(1)} m/s'),
-              _InfoItem(Icons.visibility, 'Tầm nhìn',
-                  '${(w.visibility / 1000).toStringAsFixed(1)} km'),
-              _InfoItem(Icons.compress, 'Áp suất', '${w.pressure} hPa'),
-            ],
+          LayoutBuilder(
+            builder: (context, constraints) {
+              return GridView.count(
+                crossAxisCount: 2,
+                shrinkWrap: true,
+                physics: const NeverScrollableScrollPhysics(),
+                crossAxisSpacing: 12,
+                mainAxisSpacing: 12,
+                childAspectRatio: constraints.maxWidth < 360 ? 1.6 : 1.4,
+                children: [
+                  _InfoItem(Icons.water_drop, 'Độ ẩm', '${w.humidity}%'),
+                  _InfoItem(Icons.air, 'Gió',
+                      '${w.windSpeed.toStringAsFixed(1)} m/s'),
+                  _InfoItem(Icons.visibility, 'Tầm nhìn',
+                      '${(w.visibility / 1000).toStringAsFixed(1)} km'),
+                  _InfoItem(Icons.compress, 'Áp suất', '${w.pressure} hPa'),
+                ],
+              );
+            },
           ),
 
           const SizedBox(height: 28),
@@ -283,8 +287,7 @@ class _HomeScreenState extends State<HomeScreen> {
             height: 160,
             child: provider.forecasts.isEmpty
                 ? const Center(
-                    child:
-                        CircularProgressIndicator(color: Colors.white70),
+                    child: CircularProgressIndicator(color: Colors.white70),
                   )
                 : ListView.builder(
                     scrollDirection: Axis.horizontal,
@@ -293,8 +296,7 @@ class _HomeScreenState extends State<HomeScreen> {
                       final f = provider.forecasts[index];
                       return _ForecastCard(
                         day: f.date,
-                        temp:
-                            '${f.minTemp.round()} ~ ${f.maxTemp.round()}',
+                        temp: '${f.minTemp.round()} ~ ${f.maxTemp.round()}',
                         icon: _mapIcon(f.icon),
                         rain: f.rainChance != null
                             ? '${f.rainChance!.round()}%'
@@ -348,8 +350,7 @@ class _InfoItem extends StatelessWidget {
           Icon(icon, size: 26, color: Colors.white70),
           const SizedBox(height: 4),
           Text(label,
-              style: GoogleFonts.openSans(
-                  fontSize: 12, color: Colors.white70)),
+              style: GoogleFonts.openSans(fontSize: 12, color: Colors.white70)),
           const SizedBox(height: 2),
           Text(value,
               style: GoogleFonts.openSans(
@@ -390,18 +391,16 @@ class _ForecastCard extends StatelessWidget {
         mainAxisAlignment: MainAxisAlignment.center,
         children: [
           Text(day,
-              style: GoogleFonts.openSans(
-                  fontSize: 12, color: Colors.white70)),
+              style: GoogleFonts.openSans(fontSize: 12, color: Colors.white70)),
           const SizedBox(height: 6),
           Icon(icon, size: 34, color: Colors.white),
           const SizedBox(height: 6),
           Text(temp,
-              style: GoogleFonts.openSans(
-                  fontSize: 14, color: Colors.white)),
+              style: GoogleFonts.openSans(fontSize: 14, color: Colors.white)),
           if (rain != null)
             Text('Mưa $rain',
-                style: GoogleFonts.openSans(
-                    fontSize: 11, color: Colors.white70)),
+                style:
+                    GoogleFonts.openSans(fontSize: 11, color: Colors.white70)),
         ],
       ),
     );
