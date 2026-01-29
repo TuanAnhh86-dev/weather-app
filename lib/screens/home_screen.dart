@@ -22,7 +22,7 @@ class _HomeScreenState extends State<HomeScreen> {
     super.dispose();
   }
 
-  // ================= SEARCH =================
+  // tìm kiếm thành phố
   void _searchCity(WeatherProvider provider, String value) {
     final city = value.trim();
 
@@ -37,18 +37,17 @@ class _HomeScreenState extends State<HomeScreen> {
       _showMessage('Tên thành phố quá ngắn');
       return;
     }
-
     final validCity = RegExp(r"^[a-zA-ZÀ-ỹ\s\-]+$");
     if (!validCity.hasMatch(city)) {
       _showMessage('Tên thành phố không hợp lệ');
       return;
     }
-
+  //query thời tiết
     provider.getWeather(city);
     _controller.clear();
     FocusScope.of(context).unfocus();
   }
-
+  //hiển thị tin nhắn báo lỗi khi tìm kiếm thành phố
   void _showMessage(String message) {
     ScaffoldMessenger.of(context)
       ..clearSnackBars()
@@ -122,27 +121,48 @@ class _HomeScreenState extends State<HomeScreen> {
     );
   }
 
-  Widget _buildSearch(WeatherProvider provider) {
-    return Padding(
-      padding: const EdgeInsets.symmetric(horizontal: 18),
-      child: TextField(
-        controller: _controller,
-        style: GoogleFonts.openSans(color: Colors.white),
-        decoration: InputDecoration(
-          hintText: 'Tìm kiếm thành phố',
-          hintStyle: GoogleFonts.openSans(color: Colors.white70),
-          prefixIcon: const Icon(Icons.search, color: Colors.white70),
-          filled: true,
-          fillColor: Colors.white.withOpacity(0.2),
-          border: OutlineInputBorder(
-            borderRadius: BorderRadius.circular(30),
-            borderSide: BorderSide.none,
+ Widget _buildSearch(WeatherProvider provider) {
+  return Padding(
+    padding: const EdgeInsets.symmetric(horizontal: 18),
+    child: Row(
+      children: [
+        Expanded(
+          child: TextField(
+            controller: _controller,
+            style: GoogleFonts.openSans(color: Colors.white),
+            decoration: InputDecoration(
+              hintText: 'Tìm kiếm thành phố',
+              hintStyle: GoogleFonts.openSans(color: Colors.white70),
+              prefixIcon: const Icon(Icons.search, color: Colors.white70),
+              filled: true,
+              fillColor: Colors.white.withOpacity(0.2),
+              border: OutlineInputBorder(
+                borderRadius: BorderRadius.circular(30),
+                borderSide: BorderSide.none,
+              ),
+            ),
+            onSubmitted: (v) => _searchCity(provider, v),
           ),
         ),
-        onSubmitted: (v) => _searchCity(provider, v),
-      ),
-    );
-  }
+        const SizedBox(width: 10),
+        InkWell(
+          borderRadius: BorderRadius.circular(50),
+          onTap: provider.isLoading
+              ? null
+              : () => provider.getWeatherByLocation(),
+          child: Container(
+            padding: const EdgeInsets.all(12),
+            decoration: BoxDecoration(
+              color: Colors.white.withOpacity(0.25),
+              shape: BoxShape.circle,
+            ),
+            child: const Icon(Icons.my_location, color: Colors.white),
+          ),
+        ),
+      ],
+    ),
+  );
+}
 
   Widget _buildInitial() {
     return Column(
@@ -274,7 +294,7 @@ class _HomeScreenState extends State<HomeScreen> {
 
           /// FORECAST
           Text(
-            'Dự báo 7 ngày',
+            'Dự báo thời tiết',
             style: GoogleFonts.openSans(
               fontSize: 22,
               fontWeight: FontWeight.w600,
@@ -285,22 +305,29 @@ class _HomeScreenState extends State<HomeScreen> {
 
           SizedBox(
             height: 160,
-            child: provider.forecasts.isEmpty
-                ? const Center(
-                    child: CircularProgressIndicator(color: Colors.white70),
-                  )
-                : ListView.builder(
-                    scrollDirection: Axis.horizontal,
-                    itemCount: provider.forecasts.length,
-                    itemBuilder: (context, index) {
-                      final f = provider.forecasts[index];
-                      return _ForecastCard(
-                        day: f.date,
-                        temp: '${f.minTemp.round()} ~ ${f.maxTemp.round()}',
-                        icon: _mapIcon(f.icon),
-                        rain: f.rainChance != null
-                            ? '${f.rainChance!.round()}%'
-                            : null,
+            child: provider.isLoading
+    ? const Center(
+        child: CircularProgressIndicator(color: Colors.white70),
+      )
+    : provider.forecasts.isEmpty
+        ? const Center(
+            child: Text(
+              'Không có dữ liệu dự báo',
+              style: TextStyle(color: Colors.white70),
+            ),
+          )
+        : ListView.builder(
+            scrollDirection: Axis.horizontal,
+            itemCount: provider.forecasts.length,
+            itemBuilder: (context, index) {
+              final f = provider.forecasts[index];
+              return _ForecastCard(
+                day: f.date,
+                temp: '${f.minTemp.round()} ~ ${f.maxTemp.round()}',
+                icon: _mapIcon(f.icon),
+                rain: f.rainChance != null
+                    ? '${f.rainChance!.round()}%'
+                    : null,
                       );
                     },
                   ),
@@ -311,21 +338,43 @@ class _HomeScreenState extends State<HomeScreen> {
   }
 
   IconData _mapIcon(String icon) {
-    switch (icon) {
-      case '01d':
-      case '01n':
-        return Icons.wb_sunny;
-      case '09d':
-      case '10d':
-        return Icons.grain;
-      case '11d':
-        return Icons.thunderstorm;
-      case '13d':
-        return Icons.ac_unit;
-      default:
-        return Icons.cloud;
-    }
+  switch (icon) {
+    case '01d':
+      return Icons.wb_sunny;
+    case '01n':
+      return Icons.nights_stay;
+
+    case '02d':
+    case '02n':
+    case '03d':
+    case '03n':
+    case '04d':
+    case '04n':
+      return Icons.cloud;
+
+    case '09d':
+    case '09n':
+    case '10d':
+    case '10n':
+      return Icons.grain;
+
+    case '11d':
+    case '11n':
+      return Icons.thunderstorm;
+
+    case '13d':
+    case '13n':
+      return Icons.ac_unit;
+
+    case '50d':
+    case '50n':
+      return Icons.blur_on;
+
+    default:
+      return Icons.cloud;
   }
+}
+
 }
 
 // ================= INFO ITEM =================

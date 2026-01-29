@@ -25,6 +25,7 @@ dependencies:
 
   # Lấy vị trí người dùng (rất quan trọng cho weather app)
   geolocator: ^13.0.1
+  geocoding: ^2.1.0
   permission_handler: ^11.3.1   # cập nhật 2026 có thể dùng ^11.4.x nếu mới hơn
 
   # Format ngày giờ, đơn vị (Celsius/Fahrenheit)
