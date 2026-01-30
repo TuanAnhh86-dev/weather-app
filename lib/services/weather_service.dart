@@ -2,17 +2,28 @@ import 'dart:convert';
 import 'package:http/http.dart' as http;
 import '../models/weather.dart';
 import '../models/forecast.dart';
+import '../utils/string_utils.dart';
 
 class WeatherService {
   final String apiKey;
 
   WeatherService(this.apiKey);
 
-  // ================= CURRENT WEATHER (CITY) =================
+  // ================= CURRENT WEATHER (CITY - GLOBAL) =================
   Future<Weather> fetchWeather(String city) async {
-    final uri = Uri.parse(
-      'https://api.openweathermap.org/data/2.5/weather'
-      '?q=$city&appid=$apiKey&units=metric&lang=vi',
+    // Chuẩn hoá: bỏ dấu + trim
+    final normalizedCity =
+        StringUtils.removeVietnameseDiacritics(city.trim());
+
+    final uri = Uri.https(
+      'api.openweathermap.org',
+      '/data/2.5/weather',
+      {
+        'q': normalizedCity, // 🌍 TÌM TOÀN CẦU
+        'appid': apiKey,
+        'units': 'metric',
+        'lang': 'vi',
+      },
     );
 
     final response = await http.get(uri);
@@ -24,11 +35,20 @@ class WeatherService {
     }
   }
 
-  // ================= FORECAST (CITY) =================
+  // ================= FORECAST (CITY - GLOBAL) =================
   Future<List<Forecast>> fetchForecast(String city) async {
-    final uri = Uri.parse(
-      'https://api.openweathermap.org/data/2.5/forecast'
-      '?q=$city&appid=$apiKey&units=metric&lang=vi',
+    final normalizedCity =
+        StringUtils.removeVietnameseDiacritics(city.trim());
+
+    final uri = Uri.https(
+      'api.openweathermap.org',
+      '/data/2.5/forecast',
+      {
+        'q': normalizedCity, // 🌍 TÌM TOÀN CẦU
+        'appid': apiKey,
+        'units': 'metric',
+        'lang': 'vi',
+      },
     );
 
     final response = await http.get(uri);
@@ -43,9 +63,16 @@ class WeatherService {
   // ================= FORECAST (LOCATION) =================
   Future<List<Forecast>> fetchForecastByLocation(
       double lat, double lon) async {
-    final uri = Uri.parse(
-      'https://api.openweathermap.org/data/2.5/forecast'
-      '?lat=$lat&lon=$lon&appid=$apiKey&units=metric&lang=vi',
+    final uri = Uri.https(
+      'api.openweathermap.org',
+      '/data/2.5/forecast',
+      {
+        'lat': lat.toString(),
+        'lon': lon.toString(),
+        'appid': apiKey,
+        'units': 'metric',
+        'lang': 'vi',
+      },
     );
 
     final response = await http.get(uri);
@@ -56,24 +83,30 @@ class WeatherService {
 
     return _parseForecast(json.decode(response.body));
   }
+
   // ================= CURRENT WEATHER (LOCATION) =================
-Future<Weather> fetchWeatherByLocation(double lat, double lon) async {
-  final uri = Uri.parse(
-    'https://api.openweathermap.org/data/2.5/weather'
-    '?lat=$lat&lon=$lon&appid=$apiKey&units=metric&lang=vi',
-  );
+  Future<Weather> fetchWeatherByLocation(
+      double lat, double lon) async {
+    final uri = Uri.https(
+      'api.openweathermap.org',
+      '/data/2.5/weather',
+      {
+        'lat': lat.toString(),
+        'lon': lon.toString(),
+        'appid': apiKey,
+        'units': 'metric',
+        'lang': 'vi',
+      },
+    );
 
-  final response = await http.get(uri);
+    final response = await http.get(uri);
 
-  if (response.statusCode == 200) {
-    return Weather.fromJson(json.decode(response.body));
-  } else {
-    throw Exception('Location weather failed');
+    if (response.statusCode == 200) {
+      return Weather.fromJson(json.decode(response.body));
+    } else {
+      throw Exception('Location weather failed');
+    }
   }
-}
-
-
-  
 
   // ================= PARSE FORECAST (DÙNG CHUNG) =================
   List<Forecast> _parseForecast(Map<String, dynamic> data) {

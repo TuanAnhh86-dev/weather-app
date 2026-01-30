@@ -5,6 +5,7 @@ import 'package:google_fonts/google_fonts.dart';
 import '../providers/weather_provider.dart';
 import '../models/weather.dart';
 import '../models/forecast.dart';
+import '../utils/weather_type.dart';
 
 class HomeScreen extends StatefulWidget {
   const HomeScreen({super.key});
@@ -42,11 +43,12 @@ class _HomeScreenState extends State<HomeScreen> {
       _showMessage('Tên thành phố không hợp lệ');
       return;
     }
-  //query thời tiết
+    //query thời tiết
     provider.getWeather(city);
     _controller.clear();
     FocusScope.of(context).unfocus();
   }
+
   //hiển thị tin nhắn báo lỗi khi tìm kiếm thành phố
   void _showMessage(String message) {
     ScaffoldMessenger.of(context)
@@ -65,36 +67,122 @@ class _HomeScreenState extends State<HomeScreen> {
     final provider = context.watch<WeatherProvider>();
 
     return Scaffold(
-      body: Container(
-        decoration: const BoxDecoration(
-          gradient: LinearGradient(
-            begin: Alignment.topCenter,
-            end: Alignment.bottomCenter,
-            colors: [
-              Color(0xFF4A90E2),
-              Color(0xFF2E5A9A),
-            ],
+      body: Stack(
+        children: [
+          _buildBackground(provider.weather),
+          SafeArea(
+            child: Column(
+              children: [
+                _buildHeader(),
+                _buildSearch(provider),
+                const SizedBox(height: 12),
+                Expanded(
+                  child: provider.isLoading
+                      ? const Center(
+                          child: CircularProgressIndicator(color: Colors.white),
+                        )
+                      : provider.error != null
+                          ? _buildError(provider.error!)
+                          : provider.weather == null
+                              ? _buildInitial()
+                              : _buildWeather(provider.weather!, provider),
+                ),
+              ],
+            ),
           ),
-        ),
-        child: SafeArea(
-          child: Column(
-            children: [
-              _buildHeader(),
-              _buildSearch(provider),
-              const SizedBox(height: 12),
-              Expanded(
-                child: provider.isLoading
-                    ? const Center(
-                        child: CircularProgressIndicator(color: Colors.white),
-                      )
-                    : provider.error != null
-                        ? _buildError(provider.error!)
-                        : provider.weather == null
-                            ? _buildInitial()
-                            : _buildWeather(provider.weather!, provider),
-              ),
-            ],
-          ),
+        ],
+      ),
+    );
+  }
+
+  Widget _buildBackground(Weather? weather) {
+    if (weather == null) {
+      return _gradientBg([
+        const Color(0xFF4A90E2),
+        const Color(0xFF2E5A9A),
+      ]);
+    }
+
+    final type = getWeatherType(weather.icon);
+
+    switch (type) {
+      // ☀️ NGÀY NẮNG
+      case WeatherType.sunnyDay:
+        return _gradientBg([
+          const Color(0xFFFFD200),
+          const Color(0xFFFFA000),
+          const Color(0xFF4FC3F7),
+        ]);
+
+      // 🌙 ĐÊM QUANG
+      case WeatherType.sunnyNight:
+        return _gradientBg([
+          const Color(0xFF0F2027),
+          const Color(0xFF203A43),
+          const Color(0xFF2C5364),
+        ]);
+
+      // ☁️ NGÀY NHIỀU MÂY
+      case WeatherType.cloudyDay:
+        return _gradientBg([
+          const Color(0xFFBBD2C5),
+          const Color(0xFF536976),
+        ]);
+
+      // ☁️🌙 ĐÊM NHIỀU MÂY
+      case WeatherType.cloudyNight:
+        return _gradientBg([
+          const Color(0xFF232526),
+          const Color(0xFF414345),
+        ]);
+
+      // 🌧️ MƯA NHẸ
+      case WeatherType.rainLight:
+        return _gradientBg([
+          const Color(0xFF4B79A1),
+          const Color(0xFF283E51),
+        ]);
+
+      // 🌧️🌧️ MƯA LỚN
+      case WeatherType.rainHeavy:
+        return _gradientBg([
+          const Color(0xFF0F2027),
+          const Color(0xFF000000),
+        ]);
+
+      // ⛈️ SẤM SÉT
+      case WeatherType.thunder:
+        return _gradientBg([
+          const Color(0xFF000000),
+          const Color(0xFF232526),
+          const Color(0xFF414345),
+        ]);
+
+      // ❄️ TUYẾT
+      case WeatherType.snow:
+        return _gradientBg([
+          const Color(0xFFFDFBFB),
+          const Color(0xFFE2EBF0),
+        ]);
+
+      // 🌫️ SƯƠNG MÙ
+      case WeatherType.fog:
+        return _gradientBg([
+          const Color(0xFF757F9A),
+          const Color(0xFFD7DDE8),
+        ]);
+    }
+  }
+
+  Widget _gradientBg(List<Color> colors) {
+    return AnimatedContainer(
+      duration: const Duration(milliseconds: 900),
+      curve: Curves.easeInOut,
+      decoration: BoxDecoration(
+        gradient: LinearGradient(
+          begin: Alignment.topCenter,
+          end: Alignment.bottomCenter,
+          colors: colors,
         ),
       ),
     );
@@ -121,55 +209,55 @@ class _HomeScreenState extends State<HomeScreen> {
     );
   }
 
- Widget _buildSearch(WeatherProvider provider) {
-  return Padding(
-    padding: const EdgeInsets.symmetric(horizontal: 18),
-    child: Row(
-      children: [
-        Expanded(
-          child: TextField(
-            controller: _controller,
-            style: GoogleFonts.openSans(color: Colors.white),
-            decoration: InputDecoration(
-              hintText: 'Tìm kiếm thành phố',
-              hintStyle: GoogleFonts.openSans(color: Colors.white70),
-              prefixIcon: const Icon(Icons.search, color: Colors.white70),
-              filled: true,
-              fillColor: Colors.white.withOpacity(0.2),
-              border: OutlineInputBorder(
-                borderRadius: BorderRadius.circular(30),
-                borderSide: BorderSide.none,
+  Widget _buildSearch(WeatherProvider provider) {
+    return Padding(
+      padding: const EdgeInsets.symmetric(horizontal: 18),
+      child: Row(
+        children: [
+          Expanded(
+            child: TextField(
+              controller: _controller,
+              style: GoogleFonts.openSans(color: Colors.white),
+              decoration: InputDecoration(
+                hintText: 'Tìm kiếm thành phố',
+                hintStyle: GoogleFonts.openSans(color: Colors.white70),
+                prefixIcon: const Icon(Icons.search, color: Colors.white70),
+                filled: true,
+                fillColor: Colors.black.withOpacity(0.25),
+                border: OutlineInputBorder(
+                  borderRadius: BorderRadius.circular(30),
+                  borderSide: BorderSide.none,
+                ),
               ),
+              onSubmitted: (v) => _searchCity(provider, v),
             ),
-            onSubmitted: (v) => _searchCity(provider, v),
           ),
-        ),
-        const SizedBox(width: 10),
-        InkWell(
-          borderRadius: BorderRadius.circular(50),
-          onTap: provider.isLoading
-              ? null
-              : () => provider.getWeatherByLocation(),
-          child: Container(
-            padding: const EdgeInsets.all(12),
-            decoration: BoxDecoration(
-              color: Colors.white.withOpacity(0.25),
-              shape: BoxShape.circle,
+          const SizedBox(width: 10),
+          InkWell(
+            borderRadius: BorderRadius.circular(50),
+            onTap: provider.isLoading
+                ? null
+                : () => provider.getWeatherByLocation(),
+            child: Container(
+              padding: const EdgeInsets.all(12),
+              decoration: BoxDecoration(
+                color: Colors.black.withOpacity(0.25),
+                shape: BoxShape.circle,
+              ),
+              child: const Icon(Icons.my_location, color: Colors.white),
             ),
-            child: const Icon(Icons.my_location, color: Colors.white),
           ),
-        ),
-      ],
-    ),
-  );
-}
+        ],
+      ),
+    );
+  }
 
   Widget _buildInitial() {
     return Column(
       mainAxisAlignment: MainAxisAlignment.center,
       children: [
         Icon(Icons.cloud_outlined,
-            size: 120, color: Colors.white.withOpacity(0.7)),
+            size: 120, color: Colors.black.withOpacity(0.25)),
         const SizedBox(height: 16),
         Text(
           'Nhập tên thành phố để xem thời tiết',
@@ -236,7 +324,7 @@ class _HomeScreenState extends State<HomeScreen> {
                   '°C',
                   style: GoogleFonts.openSans(
                     fontSize: isSmall ? 22 : 26,
-                    color: Colors.white.withOpacity(0.6),
+                    color: Colors.black.withOpacity(0.25),
                   ),
                 ),
               ),
@@ -306,31 +394,31 @@ class _HomeScreenState extends State<HomeScreen> {
           SizedBox(
             height: 160,
             child: provider.isLoading
-    ? const Center(
-        child: CircularProgressIndicator(color: Colors.white70),
-      )
-    : provider.forecasts.isEmpty
-        ? const Center(
-            child: Text(
-              'Không có dữ liệu dự báo',
-              style: TextStyle(color: Colors.white70),
-            ),
-          )
-        : ListView.builder(
-            scrollDirection: Axis.horizontal,
-            itemCount: provider.forecasts.length,
-            itemBuilder: (context, index) {
-              final f = provider.forecasts[index];
-              return _ForecastCard(
-                day: f.date,
-                temp: '${f.minTemp.round()} ~ ${f.maxTemp.round()}',
-                icon: _mapIcon(f.icon),
-                rain: f.rainChance != null
-                    ? '${f.rainChance!.round()}%'
-                    : null,
-                      );
-                    },
-                  ),
+                ? const Center(
+                    child: CircularProgressIndicator(color: Colors.white70),
+                  )
+                : provider.forecasts.isEmpty
+                    ? const Center(
+                        child: Text(
+                          'Không có dữ liệu dự báo',
+                          style: TextStyle(color: Colors.white70),
+                        ),
+                      )
+                    : ListView.builder(
+                        scrollDirection: Axis.horizontal,
+                        itemCount: provider.forecasts.length,
+                        itemBuilder: (context, index) {
+                          final f = provider.forecasts[index];
+                          return _ForecastCard(
+                            day: f.date,
+                            temp: '${f.minTemp.round()} ~ ${f.maxTemp.round()}',
+                            icon: _mapIcon(f.icon),
+                            rain: f.rainChance != null
+                                ? '${f.rainChance!.round()}%'
+                                : null,
+                          );
+                        },
+                      ),
           ),
         ],
       ),
@@ -338,43 +426,42 @@ class _HomeScreenState extends State<HomeScreen> {
   }
 
   IconData _mapIcon(String icon) {
-  switch (icon) {
-    case '01d':
-      return Icons.wb_sunny;
-    case '01n':
-      return Icons.nights_stay;
+    switch (icon) {
+      case '01d':
+        return Icons.wb_sunny;
+      case '01n':
+        return Icons.nights_stay;
 
-    case '02d':
-    case '02n':
-    case '03d':
-    case '03n':
-    case '04d':
-    case '04n':
-      return Icons.cloud;
+      case '02d':
+      case '02n':
+      case '03d':
+      case '03n':
+      case '04d':
+      case '04n':
+        return Icons.cloud;
 
-    case '09d':
-    case '09n':
-    case '10d':
-    case '10n':
-      return Icons.grain;
+      case '09d':
+      case '09n':
+      case '10d':
+      case '10n':
+        return Icons.grain;
 
-    case '11d':
-    case '11n':
-      return Icons.thunderstorm;
+      case '11d':
+      case '11n':
+        return Icons.thunderstorm;
 
-    case '13d':
-    case '13n':
-      return Icons.ac_unit;
+      case '13d':
+      case '13n':
+        return Icons.ac_unit;
 
-    case '50d':
-    case '50n':
-      return Icons.blur_on;
+      case '50d':
+      case '50n':
+        return Icons.blur_on;
 
-    default:
-      return Icons.cloud;
+      default:
+        return Icons.cloud;
+    }
   }
-}
-
 }
 
 // ================= INFO ITEM =================
