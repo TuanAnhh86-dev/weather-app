@@ -32,8 +32,8 @@ class Weather {
           : '',
       humidity: (json['main']['humidity'] as num?)?.toInt() ?? 0,
       windSpeed: (json['wind']['speed'] as num?)?.toDouble() ?? 0.0,
-      pressure: (json['main']['pressure'] as num?)?.toInt() ?? 0,
-      visibility: (json['visibility'] as num?)?.toInt() ?? 0,
+      pressure: (json['main']['pressure'] as num?)?.toInt() ?? 0, // thêm 
+      visibility: (json['visibility'] as num?)?.toInt() ?? 0, //
       icon: (json['weather'] as List<dynamic>?)?.isNotEmpty == true
           ? json['weather'][0]['icon'] as String? ?? '01d'
           : '01d',

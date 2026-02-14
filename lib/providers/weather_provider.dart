@@ -11,10 +11,10 @@ class WeatherProvider extends ChangeNotifier {
 
   Weather? weather;
   List<Forecast> forecasts = [];
-  bool isLoading = false;
+  bool isLoading = false; 
   String? error;
 
-  // ===== SEARCH BY CITY =====
+  // hàm bất đồng bộ thực hiện lấy dữ liệu
   Future<void> getWeather(String city) async {
     isLoading = true;
     error = null;
@@ -34,7 +34,7 @@ class WeatherProvider extends ChangeNotifier {
     notifyListeners();
   }
 
-  // ===== SEARCH BY GPS → CITY =====
+  // tra vị trí 
   Future<void> getWeatherByLocation() async {
     isLoading = true;
     error = null;
@@ -42,7 +42,7 @@ class WeatherProvider extends ChangeNotifier {
     notifyListeners();
 
     try {
-      // ✅ CHỈ LẤY TÊN THÀNH PHỐ
+      // 
       final city = await LocationService.getCurrentCity();
 
       weather = await service.fetchWeather(city);

@@ -5,7 +5,7 @@ class Forecast {
   final String icon;
   final double? rainChance;
 
-  Forecast({
+  Forecast({ // các thẻ nhỏ trong forecast
     required this.date,
     required this.minTemp,
     required this.maxTemp,
@@ -14,9 +14,9 @@ class Forecast {
   });
 
   factory Forecast.fromJson(Map<String, dynamic> json) {
-    final main = json['main'];
-    final weather = json['weather'][0];
-    final dtTxt = json['dt_txt'] as String;
+    final main = json['main']; // nhiệt độ
+    final weather = json['weather'][0]; // icon thời tiết
+    final dtTxt = json['dt_txt'] as String; // ngày giờ dạng chuỗi
     final dateTime = DateTime.parse(dtTxt);
 
     final today = DateTime.now();

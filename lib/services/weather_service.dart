@@ -6,7 +6,6 @@ import '../utils/string_utils.dart';
 
 class WeatherService {
   final String apiKey;
-
   WeatherService(this.apiKey);
 
   // ================= CURRENT WEATHER (CITY - GLOBAL) =================
@@ -19,14 +18,14 @@ class WeatherService {
       'api.openweathermap.org',
       '/data/2.5/weather',
       {
-        'q': normalizedCity, // 🌍 TÌM TOÀN CẦU
+        'q': normalizedCity,
         'appid': apiKey,
         'units': 'metric',
         'lang': 'vi',
       },
     );
 
-    final response = await http.get(uri);
+    final response = await http.get(uri); 
 
     if (response.statusCode == 200) {
       return Weather.fromJson(json.decode(response.body));
@@ -35,7 +34,7 @@ class WeatherService {
     }
   }
 
-  // ================= FORECAST (CITY - GLOBAL) =================
+
   Future<List<Forecast>> fetchForecast(String city) async {
     final normalizedCity =
         StringUtils.removeVietnameseDiacritics(city.trim());
@@ -44,7 +43,7 @@ class WeatherService {
       'api.openweathermap.org',
       '/data/2.5/forecast',
       {
-        'q': normalizedCity, // 🌍 TÌM TOÀN CẦU
+        'q': normalizedCity,
         'appid': apiKey,
         'units': 'metric',
         'lang': 'vi',
@@ -60,9 +59,9 @@ class WeatherService {
     return _parseForecast(json.decode(response.body));
   }
 
-  // ================= FORECAST (LOCATION) =================
+
   Future<List<Forecast>> fetchForecastByLocation(
-      double lat, double lon) async {
+      double lat, double lon) async { 
     final uri = Uri.https(
       'api.openweathermap.org',
       '/data/2.5/forecast',
@@ -84,7 +83,6 @@ class WeatherService {
     return _parseForecast(json.decode(response.body));
   }
 
-  // ================= CURRENT WEATHER (LOCATION) =================
   Future<Weather> fetchWeatherByLocation(
       double lat, double lon) async {
     final uri = Uri.https(
@@ -107,17 +105,20 @@ class WeatherService {
       throw Exception('Location weather failed');
     }
   }
+  // dùng lat lon để lấy forecast và weather
 
-  // ================= PARSE FORECAST (DÙNG CHUNG) =================
+  // phân tích dữ liệu forecast từ API
   List<Forecast> _parseForecast(Map<String, dynamic> data) {
     final List list = data['list'];
 
     final Map<DateTime, List<Map<String, dynamic>>> dailyMap = {};
+    // 2026-02-02 → [8h, 11h, 14h, 17h, ...]
+    // 2026-02-03 → [8h, 11h, 14h, ...]
 
     for (final item in list) {
       final dt = DateTime.parse(item['dt_txt']);
       final dateKey = DateTime(dt.year, dt.month, dt.day);
-
+    // 
       final today = DateTime.now();
       final todayKey = DateTime(today.year, today.month, today.day);
       if (dateKey.isBefore(todayKey)) continue;
