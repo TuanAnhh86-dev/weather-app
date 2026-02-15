@@ -3,14 +3,14 @@ import 'package:http/http.dart' as http;
 import '../models/weather.dart';
 import '../models/forecast.dart';
 import '../utils/string_utils.dart';
+import '../utils/vietnam_city_map.dart';
 
 class WeatherService {
   final String apiKey;
   WeatherService(this.apiKey);
 
-  // ================= CURRENT WEATHER (CITY - GLOBAL) =================
+  // ================= CURRENT WEATHER (CITY) =================
   Future<Weather> fetchWeather(String city) async {
-    // Chuẩn hoá: bỏ dấu + trim
     final normalizedCity =
         StringUtils.removeVietnameseDiacritics(city.trim());
 
@@ -25,16 +25,21 @@ class WeatherService {
       },
     );
 
-    final response = await http.get(uri); 
+    final response = await http.get(uri);
 
     if (response.statusCode == 200) {
-      return Weather.fromJson(json.decode(response.body));
+      final data = json.decode(response.body);
+
+      // 🔥 Chuẩn hoá tên thành phố trả về
+      data['name'] = VietnamCityMap.getDisplayName(data['name']);
+
+      return Weather.fromJson(data);
     } else {
       throw Exception('City not found');
     }
   }
 
-
+  // ================= FORECAST (CITY) =================
   Future<List<Forecast>> fetchForecast(String city) async {
     final normalizedCity =
         StringUtils.removeVietnameseDiacritics(city.trim());
@@ -59,9 +64,10 @@ class WeatherService {
     return _parseForecast(json.decode(response.body));
   }
 
-
+  // ================= FORECAST (LAT LON) =================
   Future<List<Forecast>> fetchForecastByLocation(
-      double lat, double lon) async { 
+      double lat, double lon) async {
+
     final uri = Uri.https(
       'api.openweathermap.org',
       '/data/2.5/forecast',
@@ -83,8 +89,10 @@ class WeatherService {
     return _parseForecast(json.decode(response.body));
   }
 
+  // ================= CURRENT WEATHER (LAT LON) =================
   Future<Weather> fetchWeatherByLocation(
       double lat, double lon) async {
+
     final uri = Uri.https(
       'api.openweathermap.org',
       '/data/2.5/weather',
@@ -100,27 +108,29 @@ class WeatherService {
     final response = await http.get(uri);
 
     if (response.statusCode == 200) {
-      return Weather.fromJson(json.decode(response.body));
+      final data = json.decode(response.body);
+
+      // 🔥 Chuẩn hoá tên thành phố trả về
+      data['name'] = VietnamCityMap.getDisplayName(data['name']);
+
+      return Weather.fromJson(data);
     } else {
       throw Exception('Location weather failed');
     }
   }
-  // dùng lat lon để lấy forecast và weather
 
-  // phân tích dữ liệu forecast từ API
+  // ================= PARSE FORECAST =================
   List<Forecast> _parseForecast(Map<String, dynamic> data) {
     final List list = data['list'];
-
     final Map<DateTime, List<Map<String, dynamic>>> dailyMap = {};
-    // 2026-02-02 → [8h, 11h, 14h, 17h, ...]
-    // 2026-02-03 → [8h, 11h, 14h, ...]
 
     for (final item in list) {
       final dt = DateTime.parse(item['dt_txt']);
       final dateKey = DateTime(dt.year, dt.month, dt.day);
-    // 
+
       final today = DateTime.now();
       final todayKey = DateTime(today.year, today.month, today.day);
+
       if (dateKey.isBefore(todayKey)) continue;
 
       dailyMap.putIfAbsent(dateKey, () => []);
