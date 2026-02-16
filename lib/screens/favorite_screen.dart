@@ -1,0 +1,160 @@
+import 'package:flutter/material.dart';
+import '../services/favorite_city_service.dart';
+import 'package:provider/provider.dart';
+import '../providers/weather_provider.dart';
+
+class FavoriteScreen extends StatefulWidget {
+  const FavoriteScreen({super.key});
+
+  @override
+  State<FavoriteScreen> createState() => _FavoriteScreenState();
+}
+
+class _FavoriteScreenState extends State<FavoriteScreen> {
+  List<String> cities = [];
+
+  @override
+  void initState() {
+    super.initState();
+    loadCities();
+  }
+
+  void loadCities() async {
+    cities = await FavoriteCityService.getCities();
+    setState(() {});
+  }
+
+  @override
+  Widget build(BuildContext context) {
+    return Scaffold(
+      backgroundColor: const Color(0xFF2E5A9A),
+      appBar: AppBar(
+        title: const Text("Thành phố yêu thích"),
+        backgroundColor: Colors.transparent,
+        elevation: 0,
+      ),
+      body: cities.isEmpty
+          ? const Center(
+              child: Text(
+                "Chưa có thành phố nào",
+                style: TextStyle(color: Colors.white),
+              ),
+            )
+          : ListView.builder(
+              padding: const EdgeInsets.all(16),
+              itemCount: cities.length,
+              itemBuilder: (context, index) {
+                final city = cities[index];
+
+                return Dismissible(
+  key: Key(city),
+
+  /// ✅ Gạt trái hoặc phải đều xoá
+  direction: DismissDirection.horizontal,
+
+  /// Animation mượt hơn
+  movementDuration: const Duration(milliseconds: 250),
+  resizeDuration: const Duration(milliseconds: 300),
+
+  /// 👉 Nền khi gạt sang phải
+  background: Container(
+    padding: const EdgeInsets.symmetric(horizontal: 20),
+    alignment: Alignment.centerLeft,
+    decoration: BoxDecoration(
+      color: Colors.red,
+      borderRadius: BorderRadius.circular(20),
+    ),
+    child: const Icon(
+      Icons.delete,
+      color: Colors.white,
+      size: 30,
+    ),
+  ),
+
+  /// 👉 Nền khi gạt sang trái
+  secondaryBackground: Container(
+    padding: const EdgeInsets.symmetric(horizontal: 20),
+    alignment: Alignment.centerRight,
+    decoration: BoxDecoration(
+      color: Colors.red,
+      borderRadius: BorderRadius.circular(20),
+    ),
+    child: const Icon(
+      Icons.delete,
+      color: Colors.white,
+      size: 30,
+    ),
+  ),
+
+  onDismissed: (direction) async {
+    await FavoriteCityService.removeCity(city);
+
+    setState(() {
+      cities.remove(city);
+    });
+
+    ScaffoldMessenger.of(context).showSnackBar(
+      SnackBar(
+        content: Text("$city đã bị xoá"),
+        action: SnackBarAction(
+          label: "Hoàn tác",
+          onPressed: () async {
+            await FavoriteCityService.addCity(city);
+            loadCities();
+          },
+        ),
+      ),
+    );
+  },
+
+  child: Padding(
+    padding: const EdgeInsets.only(bottom: 12),
+    child: GestureDetector(
+      onTap: () {
+        Navigator.pop(context, city);
+      },
+      child: Container(
+        padding: const EdgeInsets.all(16),
+        decoration: BoxDecoration(
+          color: Colors.white,
+          borderRadius: BorderRadius.circular(20),
+          boxShadow: [
+            BoxShadow(
+              color: Colors.black.withOpacity(0.1),
+              blurRadius: 10,
+              offset: const Offset(0, 5),
+            ),
+          ],
+        ),
+        child: Row(
+          children: [
+            const Icon(
+              Icons.location_city,
+              color: Color(0xFF2E5A9A),
+            ),
+            const SizedBox(width: 12),
+            Expanded(
+              child: Text(
+                city,
+                style: const TextStyle(
+                  fontSize: 18,
+                  fontWeight: FontWeight.w600,
+                ),
+              ),
+            ),
+            const Icon(
+              Icons.arrow_forward_ios,
+              size: 16,
+              color: Colors.grey,
+            ),
+          ],
+        ),
+      ),
+    ),
+  ),
+);
+              },
+            ),
+    );
+  }
+}

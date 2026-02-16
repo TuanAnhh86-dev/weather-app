@@ -1,7 +1,8 @@
 import 'package:flutter/material.dart';
 import 'package:provider/provider.dart';
 import 'package:google_fonts/google_fonts.dart';
-
+import '../services/favorite_city_service.dart';
+import 'favorite_screen.dart';
 import '../providers/weather_provider.dart';
 import '../models/weather.dart';
 import '../models/forecast.dart';
@@ -189,25 +190,46 @@ class _HomeScreenState extends State<HomeScreen> {
   }
 
   // ================= UI PARTS =================
-  Widget _buildHeader() {
-    return Padding(
-      padding: const EdgeInsets.fromLTRB(16, 16, 16, 8),
-      child: Row(
-        children: [
-          const Icon(Icons.location_on, color: Colors.white),
-          const SizedBox(width: 8),
-          Text(
-            'Forecast Weather',
-            style: GoogleFonts.openSans(
-              fontSize: 24,
-              fontWeight: FontWeight.w600,
-              color: Colors.white,
-            ),
+Widget _buildHeader() {
+  final provider = context.read<WeatherProvider>();
+
+  return Padding(
+    padding: const EdgeInsets.fromLTRB(16, 16, 16, 8),
+    child: Row(
+      mainAxisAlignment: MainAxisAlignment.spaceBetween,
+      children: [
+        IconButton(
+          icon: const Icon(Icons.menu, color: Colors.white),
+          onPressed: () async {
+            final String? selectedCity = await Navigator.push(
+              context,
+              MaterialPageRoute(
+                builder: (_) => const FavoriteScreen(),
+              ),
+            );
+
+            if (selectedCity != null) {
+              provider.getWeather(selectedCity);
+            }
+          },
+        ),
+
+        Text(
+          'Forecast Weather',
+          style: GoogleFonts.openSans(
+            fontSize: 24,
+            fontWeight: FontWeight.w600,
+            color: Colors.white,
           ),
-        ],
-      ),
-    );
-  }
+        ),
+
+        const SizedBox(width: 48),
+      ],
+    ),
+  );
+}
+
+
 
   Widget _buildSearch(WeatherProvider provider) {
     return Padding(
@@ -303,6 +325,15 @@ class _HomeScreenState extends State<HomeScreen> {
             ),
           ),
           const SizedBox(height: 8),
+          IconButton(
+            icon: const Icon(Icons.star, color: Colors.yellow),
+            onPressed: () async {
+              await FavoriteCityService.addCity(w.city);
+              ScaffoldMessenger.of(context).showSnackBar(
+                SnackBar(content: Text("Đã lưu ${w.city}")),
+              );
+            },
+          ),
 
           /// NHIỆT ĐỘ
           Row(
@@ -463,6 +494,8 @@ class _HomeScreenState extends State<HomeScreen> {
     }
   }
 }
+
+
 
 // ================= INFO ITEM =================
 class _InfoItem extends StatelessWidget {

@@ -13,6 +13,8 @@ dependencies:
   flutter:
     sdk: flutter
   google_fonts: ^6.2.1
+  
+
   # Gọi API (có 2 lựa chọn phổ biến)
   http: ^1.2.2                # đơn giản, nhẹ (phiên bản này vẫn ổn, 2026 dùng ^1.2.x hoặc mới hơn nếu có)
   # dio: ^5.7.0               # uncomment nếu bạn muốn dùng dio thay http
