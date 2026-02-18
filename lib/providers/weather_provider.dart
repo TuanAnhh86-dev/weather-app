@@ -56,5 +56,11 @@ class WeatherProvider extends ChangeNotifier {
     isLoading = false;
     notifyListeners();
   }
+  Future<void> refreshWeather() async {
+  if (weather != null) {
+    await getWeather(weather!.city);
+  }
+}
+
 }
   

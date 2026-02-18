@@ -7,6 +7,8 @@ import '../providers/weather_provider.dart';
 import '../models/weather.dart';
 import '../models/forecast.dart';
 import '../utils/weather_type.dart';
+import '../services/search_history_service.dart';
+import 'dart:async';
 
 class HomeScreen extends StatefulWidget {
   const HomeScreen({super.key});
@@ -17,15 +19,52 @@ class HomeScreen extends StatefulWidget {
 
 class _HomeScreenState extends State<HomeScreen> {
   final TextEditingController _controller = TextEditingController();
+  List<String> _history = [];
+  bool _showHistoryList = false;
+  Timer? _historyTimer;
+  Future<void> _toggleFavorite(String city) async {
+    final messenger = ScaffoldMessenger.of(context);
+
+    final cities = await FavoriteCityService.getCities();
+
+    if (!mounted) return;
+
+    messenger.hideCurrentSnackBar();
+
+    final isFavorite = cities.contains(city);
+
+    if (isFavorite) {
+      await FavoriteCityService.removeCity(city);
+    } else {
+      await FavoriteCityService.addCity(city);
+    }
+
+    if (!mounted) return;
+
+    messenger.showSnackBar(
+      SnackBar(
+        content: Text(
+          isFavorite ? "$city đã bị xoá" : "Đã lưu $city",
+        ),
+        duration: Duration(seconds: isFavorite ? 5 : 3),
+        behavior: SnackBarBehavior.floating,
+        
+            
+      ),
+    );
+
+    if (mounted) setState(() {});
+  }
 
   @override
   void dispose() {
     _controller.dispose();
     super.dispose();
+    _historyTimer?.cancel();
   }
 
   // tìm kiếm thành phố
-  void _searchCity(WeatherProvider provider, String value) {
+  void _searchCity(WeatherProvider provider, String value) async {
     final city = value.trim();
 
     if (provider.isLoading) return;
@@ -44,22 +83,47 @@ class _HomeScreenState extends State<HomeScreen> {
       _showMessage('Tên thành phố không hợp lệ');
       return;
     }
+
     //query thời tiết
-    provider.getWeather(city);
+    await provider.getWeather(city);
+    await SearchHistoryService.addCity(city);
+
     _controller.clear();
     FocusScope.of(context).unfocus();
   }
 
   //hiển thị tin nhắn báo lỗi khi tìm kiếm thành phố
   void _showMessage(String message) {
-    ScaffoldMessenger.of(context)
-      ..clearSnackBars()
-      ..showSnackBar(
-        SnackBar(
-          content: Text(message, style: GoogleFonts.openSans()),
-          behavior: SnackBarBehavior.floating,
-        ),
-      );
+    ScaffoldMessenger.of(context).clearSnackBars();
+
+    ScaffoldMessenger.of(context).showSnackBar(
+      SnackBar(
+        content: Text(message),
+        duration: const Duration(seconds: 5),
+        behavior: SnackBarBehavior.floating,
+      ),
+    );
+  }
+
+  void _showHistory() async {
+    final history = await SearchHistoryService.getHistory();
+
+    if (!mounted) return;
+
+    setState(() {
+      _history = history;
+      _showHistoryList = true;
+    });
+
+    // Tự động ẩn sau 5 giây
+    _historyTimer?.cancel();
+    _historyTimer = Timer(const Duration(seconds: 5), () {
+      if (mounted) {
+        setState(() {
+          _showHistoryList = false;
+        });
+      }
+    });
   }
 
   // ================= BUILD =================
@@ -68,31 +132,97 @@ class _HomeScreenState extends State<HomeScreen> {
     final provider = context.watch<WeatherProvider>();
 
     return Scaffold(
+      resizeToAvoidBottomInset: false, // rất quan trọng
       body: Stack(
         children: [
           _buildBackground(provider.weather),
           SafeArea(
-            child: Column(
+            child: Stack(
               children: [
-                _buildHeader(),
-                _buildSearch(provider),
-                const SizedBox(height: 12),
-                Expanded(
-                  child: provider.isLoading
-                      ? const Center(
-                          child: CircularProgressIndicator(color: Colors.white),
-                        )
-                      : provider.error != null
-                          ? _buildError(provider.error!)
-                          : provider.weather == null
-                              ? _buildInitial()
-                              : _buildWeather(provider.weather!, provider),
+                Column(
+                  children: [
+                    _buildHeader(),
+                    _buildSearch(provider),
+                    const SizedBox(height: 12),
+                    Expanded(
+                      child: provider.isLoading
+                          ? const Center(
+                              child: CircularProgressIndicator(
+                                  color: Colors.white),
+                            )
+                          : provider.error != null
+                              ? _buildError(provider.error!)
+                              : provider.weather == null
+                                  ? _buildInitial()
+                                  : _buildWeather(provider.weather!, provider),
+                    ),
+                  ],
                 ),
+                if (_showHistoryList && _history.isNotEmpty)
+                  _buildHistoryOverlay(provider),
               ],
             ),
           ),
         ],
       ),
+    );
+  }
+
+  Widget _buildHistoryOverlay(WeatherProvider provider) {
+    return Positioned(
+      top: 140, // chỉnh khoảng cách ở đây
+      left: 18,
+      right: 18,
+      child: Material(
+        color: Colors.transparent,
+        child: Container(
+          constraints: const BoxConstraints(maxHeight: 250),
+          decoration: BoxDecoration(
+            color: Colors.black.withOpacity(0.6),
+            borderRadius: BorderRadius.circular(18),
+          ),
+          child: ListView.builder(
+            padding: EdgeInsets.zero,
+            shrinkWrap: true,
+            itemCount: _history.length,
+            itemBuilder: (context, index) {
+              final city = _history[index];
+              return _buildHistoryItem(city, provider);
+            },
+          ),
+        ),
+      ),
+    );
+  }
+
+  Widget _buildHistoryItem(String city, WeatherProvider provider) {
+    return ListTile(
+      leading: const Icon(Icons.history, color: Colors.white70, size: 20),
+      title: Text(
+        city,
+        style: GoogleFonts.openSans(
+          color: Colors.white,
+          fontSize: 14,
+        ),
+      ),
+      trailing: IconButton(
+        icon: const Icon(Icons.close, color: Colors.white54, size: 18),
+        onPressed: () async {
+          await SearchHistoryService.removeCity(city);
+
+          setState(() {
+            _history.remove(city); // ❗ không cần load lại toàn bộ
+          });
+        },
+      ),
+      onTap: () {
+        _controller.text = city;
+        _searchCity(provider, city);
+
+        setState(() {
+          _showHistoryList = false;
+        });
+      },
     );
   }
 
@@ -190,46 +320,50 @@ class _HomeScreenState extends State<HomeScreen> {
   }
 
   // ================= UI PARTS =================
-Widget _buildHeader() {
-  final provider = context.read<WeatherProvider>();
+  Widget _buildHeader() {
+    final provider = context.read<WeatherProvider>();
 
-  return Padding(
-    padding: const EdgeInsets.fromLTRB(16, 16, 16, 8),
-    child: Row(
-      mainAxisAlignment: MainAxisAlignment.spaceBetween,
-      children: [
-        IconButton(
-          icon: const Icon(Icons.menu, color: Colors.white),
-          onPressed: () async {
-            final String? selectedCity = await Navigator.push(
-              context,
-              MaterialPageRoute(
-                builder: (_) => const FavoriteScreen(),
-              ),
-            );
+    return Padding(
+      padding: const EdgeInsets.fromLTRB(16, 16, 16, 8),
+      child: Row(
+        mainAxisAlignment: MainAxisAlignment.spaceBetween,
+        children: [
+          IconButton(
+            icon: const Icon(Icons.menu, color: Colors.white),
+            onPressed: () async {
+              final String? selectedCity = await Navigator.push(
+                context,
+                MaterialPageRoute(
+                  builder: (_) => const FavoriteScreen(),
+                ),
+              );
 
-            if (selectedCity != null) {
-              provider.getWeather(selectedCity);
-            }
-          },
-        ),
-
-        Text(
-          'Forecast Weather',
-          style: GoogleFonts.openSans(
-            fontSize: 24,
-            fontWeight: FontWeight.w600,
-            color: Colors.white,
+              if (selectedCity != null) {
+                provider.getWeather(selectedCity);
+              }
+            },
           ),
-        ),
 
-        const SizedBox(width: 48),
-      ],
-    ),
-  );
-}
+          /// TAP ĐỂ REFRESH
+          GestureDetector(
+            onTap: () {
+              provider.refreshWeather();
+            },
+            child: Text(
+              'Forecast Weather',
+              style: GoogleFonts.openSans(
+                fontSize: 24,
+                fontWeight: FontWeight.w600,
+                color: Colors.white,
+              ),
+            ),
+          ),
 
-
+          const SizedBox(width: 48),
+        ],
+      ),
+    );
+  }
 
   Widget _buildSearch(WeatherProvider provider) {
     return Padding(
@@ -240,6 +374,18 @@ Widget _buildHeader() {
             child: TextField(
               controller: _controller,
               style: GoogleFonts.openSans(color: Colors.white),
+              onTap: _showHistory,
+              onChanged: (value) async {
+                final history = await SearchHistoryService.getHistory();
+
+                setState(() {
+                  _history = history
+                      .where((city) =>
+                          city.toLowerCase().contains(value.toLowerCase()))
+                      .toList();
+                  _showHistoryList = true;
+                });
+              },
               decoration: InputDecoration(
                 hintText: 'Tìm kiếm thành phố',
                 hintStyle: GoogleFonts.openSans(color: Colors.white70),
@@ -251,7 +397,12 @@ Widget _buildHeader() {
                   borderSide: BorderSide.none,
                 ),
               ),
-              onSubmitted: (v) => _searchCity(provider, v),
+              onSubmitted: (v) {
+                _searchCity(provider, v);
+                setState(() {
+                  _showHistoryList = false;
+                });
+              },
             ),
           ),
           const SizedBox(width: 10),
@@ -327,11 +478,8 @@ Widget _buildHeader() {
           const SizedBox(height: 8),
           IconButton(
             icon: const Icon(Icons.star, color: Colors.yellow),
-            onPressed: () async {
-              await FavoriteCityService.addCity(w.city);
-              ScaffoldMessenger.of(context).showSnackBar(
-                SnackBar(content: Text("Đã lưu ${w.city}")),
-              );
+            onPressed: () {
+              _toggleFavorite(w.city);
             },
           ),
 
@@ -494,8 +642,6 @@ Widget _buildHeader() {
     }
   }
 }
-
-
 
 // ================= INFO ITEM =================
 class _InfoItem extends StatelessWidget {
