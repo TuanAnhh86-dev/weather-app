@@ -3,6 +3,7 @@ import 'package:provider/provider.dart';
 import 'package:google_fonts/google_fonts.dart';
 import '../services/favorite_city_service.dart';
 import 'favorite_screen.dart';
+import 'map_screen.dart';
 import '../providers/weather_provider.dart';
 import '../models/weather.dart';
 import '../models/forecast.dart';
@@ -359,7 +360,18 @@ class _HomeScreenState extends State<HomeScreen> {
             ),
           ),
 
-          const SizedBox(width: 48),
+          IconButton(
+            icon: const Icon(Icons.map, color: Colors.white),
+            onPressed: () {
+              Navigator.push(
+                context,
+                MaterialPageRoute(
+                  builder: (_) => const MapScreen(),
+                ),
+              );
+            },
+            tooltip: 'Bản đồ thời tiết',
+          ),
         ],
       ),
     );
