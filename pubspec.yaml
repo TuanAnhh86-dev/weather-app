@@ -45,6 +45,10 @@ dependencies:
   shared_preferences: ^2.3.0  # lưu city yêu thích, đơn vị nhiệt độ
   # hive: ^2.2.3              # uncomment nếu muốn lưu phức tạp hơn
 
+# Bản đồ thời tiết
+  flutter_map: ^7.0.2         # thư viện bản đồ cho Flutter
+  latlong2: ^0.9.1            # làm việc với tọa độ lat/long
+
 # Phần assets (nếu dùng lottie hoặc svg icon local, nhớ khai báo)
 flutter:
   uses-material-design: true
