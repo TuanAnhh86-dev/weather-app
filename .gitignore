@@ -1,22 +1,44 @@
-# Flutter/Dart/Pub related
-**/doc/api/
-**/ios/Flutter/.last_build_id
+# Flutter
 .dart_tool/
-.flutter-plugins-dependencies
-.pub-cache/
+.packages
 .pub/
 build/
-coverage/
 
-# Android Studio / VS Code
+# Generated files
+*.log
+*.tmp
+*.lock
+
+# Environment
+.env
+
+# IDE
 .idea/
 .vscode/
 
-# Misc
-*.log
-*.class
-*.swp
-.DS_Store
+# Android
+android/.gradle/
+android/app/build/
+local.properties
 
-# Env
-.env
+# iOS
+ios/Pods/
+ios/.symlinks/
+ios/Flutter/Flutter.framework
+ios/Flutter/Flutter.podspec
+
+# MacOS
+macos/Flutter/Flutter.framework
+
+# Windows
+windows/flutter/ephemeral/
+
+# Linux
+linux/flutter/ephemeral/
+
+# Web
+web/.dart_tool/
+
+# Flutter plugins
+.flutter-plugins
+.flutter-plugins-dependencies
